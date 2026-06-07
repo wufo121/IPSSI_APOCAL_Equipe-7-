@@ -16,13 +16,53 @@ backend/llm/
 └── services/
     ├── base.py             ← interface LLMClient + LLMError
     ├── factory.py          ← get_llm_client() selon settings.LLM_BACKEND
-    ├── ollama_client.py    ← OllamaLLMClient (HTTP + prompt + parsing)
-    └── mock_client.py      ← MockLLMClient (déterministe, pour tests)
+    ├── quiz_prompt.py      ← prompt + validation PARTAGÉS (DRY) entre tous les clients
+    ├── ollama_client.py    ← OllamaLLMClient   (LOCAL, gratuit — défaut)
+    ├── openai_client.py    ← OpenAILLMClient   (API, payant)
+    ├── anthropic_client.py ← AnthropicLLMClient (API Claude, payant)
+    └── mock_client.py      ← MockLLMClient     (déterministe, pour tests)
 ```
 
 **Pattern utilisé** : Strategy + Factory.
 Le code applicatif (`views.py`) ne dépend que de l'interface `LLMClient`.
 Le client concret est choisi à l'exécution via `LLM_BACKEND` (env var).
+
+> 💡 **Note pédagogique — DRY.** Le prompt système et la validation de la sortie
+> sont mutualisés dans `quiz_prompt.py` et réutilisés par les 4 clients. Améliorer
+> le prompt ou durcir la validation (perturbations J3/J4) se fait donc à **un seul
+> endroit**, et tous les fournisseurs en bénéficient.
+
+---
+
+## 🔀 Choisir le fournisseur LLM (gratuit vs payant)
+
+Quatre fournisseurs sont disponibles, sélectionnés par `LLM_BACKEND` dans `.env` :
+
+| `LLM_BACKEND` | Fournisseur | Coût | Données | Quand l'utiliser |
+|---|---|---|---|---|
+| `ollama` *(défaut)* | Modèle local (Llama, Phi…) | **Gratuit** | Restent sur le serveur (souveraineté) | Développement, démo, RGPD strict |
+| `mock` | Faux QCM instantanés | Gratuit | Aucune | Tests, dev de l'UI sans attendre |
+| `openai` | API OpenAI (GPT) | 💸 **Payant** | Envoyées hors UE | Future version premium |
+| `anthropic` | API Anthropic (Claude) | 💸 **Payant** | Envoyées hors UE | Future version premium |
+
+```bash
+# .env — exemples
+LLM_BACKEND=ollama                       # gratuit, local (recommandé en dev)
+
+# LLM_BACKEND=openai                     # payant
+# OPENAI_API_KEY=sk-...
+# OPENAI_MODEL=gpt-4o-mini
+
+# LLM_BACKEND=anthropic                  # payant
+# ANTHROPIC_API_KEY=sk-ant-...
+# ANTHROPIC_MODEL=claude-3-5-haiku-20241022
+```
+
+> ⚠️ **Garde-fou pédagogique.** En développement, **restez sur `ollama` (gratuit)**.
+> Les fournisseurs payants envoient le cours sur des serveurs hors UE (enjeu RGPD,
+> cf. perturbation J3-bis) et facturent chaque génération. Le factory loggue un
+> avertissement à chaque usage payant. Ces backends sont pensés pour une future
+> **version premium** de l'application — pas pour vos itérations de dev.
 
 ---
 
@@ -52,7 +92,7 @@ docker exec apocalipssi-2026-ollama ollama pull <nouveau-modèle>
 
 ## 🧠 Le prompt
 
-Dans `services/ollama_client.py` :
+Dans `services/quiz_prompt.py` (partagé par TOUS les clients : Ollama, OpenAI, Claude) :
 
 ```python
 SYSTEM_PROMPT = """Tu es un assistant pédagogique francophone spécialisé en
@@ -79,7 +119,7 @@ Astuces si la qualité est médiocre :
 
 ## 🛡️ Validation post-LLM
 
-`OllamaLLMClient._parse_and_validate` impose :
+`quiz_prompt.parse_and_validate_quiz` (partagé par tous les clients) impose :
 
 - JSON parseable (avec fallback regex `{...}`)
 - Clé `questions` est une liste de **10** éléments
@@ -119,6 +159,8 @@ import requests
 from django.conf import settings
 
 from .base import LLMClient, LLMError
+# On RÉUTILISE le prompt et la validation partagés (DRY) :
+from .quiz_prompt import build_full_prompt, parse_and_validate_quiz
 
 
 class HuggingFaceLLMClient(LLMClient):
@@ -127,27 +169,29 @@ class HuggingFaceLLMClient(LLMClient):
         self.model = settings.HF_MODEL  # ex: "mistralai/Mistral-7B-Instruct-v0.3"
 
     def generate_quiz(self, source_text: str, title: str) -> list[dict]:
-        # Appel inference.huggingface.co
-        # Parsing similaire à OllamaClient
-        # ...
-        raise NotImplementedError("À toi de jouer !")
+        prompt = build_full_prompt(source_text, title)   # prompt mutualisé
+        # ... appel HTTP à inference.huggingface.co avec `prompt`, récupérer `raw`
+        raw = "..."  # À toi de jouer !
+        return parse_and_validate_quiz(raw)              # validation mutualisée
 ```
 
 ### 2. L'enregistrer dans la factory
 
 ```python
 # backend/llm/services/factory.py
-def get_llm_client() -> LLMClient:
-    backend = (settings.LLM_BACKEND or "ollama").lower()
-    if backend == "mock":
-        return MockLLMClient()
-    if backend == "ollama":
-        return OllamaLLMClient()
-    if backend == "huggingface":          # ← AJOUT
-        from .huggingface_client import HuggingFaceLLMClient
-        return HuggingFaceLLMClient()
-    raise ValueError(f"LLM_BACKEND inconnu : {backend}")
+from .huggingface_client import HuggingFaceLLMClient   # import en haut du fichier
+
+_BACKENDS = {
+    "mock":        MockLLMClient,
+    "ollama":      OllamaLLMClient,
+    "openai":      OpenAILLMClient,
+    "anthropic":   AnthropicLLMClient,
+    "huggingface": HuggingFaceLLMClient,                # ← AJOUT (une seule ligne !)
+}
 ```
+
+> 💡 Grâce au dictionnaire `_BACKENDS`, ajouter un fournisseur = **une ligne**.
+> C'est tout l'intérêt du factory pattern.
 
 ### 3. Configurer
 

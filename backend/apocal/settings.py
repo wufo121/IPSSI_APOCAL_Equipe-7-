@@ -174,10 +174,31 @@ CORS_ALLOW_CREDENTIALS = True
 # ----------------------------------------------------------------------------
 # Intégration LLM (Ollama)
 # ----------------------------------------------------------------------------
+# Fournisseur de génération de quiz. 4 valeurs possibles :
+#   "ollama"    -> modèle LOCAL gratuit (défaut, recommandé en développement)
+#   "openai"    -> API OpenAI (PAYANT, future version premium)
+#   "anthropic" -> API Anthropic / Claude (PAYANT, future version premium)
+#   "mock"      -> faux QCM instantanés (tests / dev sans LLM)
+LLM_BACKEND  = config("LLM_BACKEND",  default="ollama")
+
+# --- Ollama (local, gratuit) ---
 OLLAMA_HOST  = config("OLLAMA_HOST",  default="http://ollama:11434")
 OLLAMA_MODEL = config("OLLAMA_MODEL", default="llama3.1:8b")
-LLM_BACKEND  = config("LLM_BACKEND",  default="ollama")  # "ollama" | "mock"
 # Délai max (secondes) d'attente d'une génération Ollama. Sur CPU, un modèle 8B
 # met facilement 2 à 5 minutes pour 10 QCM : 120 s était trop court (timeout ->
 # 502). Défaut généreux, ajustable via .env (OLLAMA_TIMEOUT).
 OLLAMA_TIMEOUT = config("OLLAMA_TIMEOUT", default=600, cast=int)
+
+# --- OpenAI (API payante) ---
+# Laissez OPENAI_API_KEY vide en dev : le backend "openai" refusera de démarrer
+# sans clé, ce qui est volontaire (évite les frais accidentels).
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+OPENAI_MODEL   = config("OPENAI_MODEL",   default="gpt-4o-mini")
+
+# --- Anthropic / Claude (API payante) ---
+ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
+ANTHROPIC_MODEL   = config("ANTHROPIC_MODEL",   default="claude-3-5-haiku-20241022")
+
+# Délai max (secondes) pour les API cloud (OpenAI/Anthropic), bien plus rapides
+# qu'un modèle local sur CPU.
+LLM_API_TIMEOUT = config("LLM_API_TIMEOUT", default=60, cast=int)
