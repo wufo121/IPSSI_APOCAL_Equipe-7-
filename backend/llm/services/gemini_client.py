@@ -11,6 +11,7 @@ prompt et la validation partagés (quiz_prompt.py), et on isole les consignes
 système du contenu utilisateur via `system_instruction` (bonne pratique
 anti prompt-injection, cf. J3).
 """
+
 import requests
 from django.conf import settings
 
@@ -18,14 +19,17 @@ from .base import LLMClient, LLMError
 from .quiz_prompt import SYSTEM_PROMPT, build_user_prompt, parse_and_validate_quiz
 
 # L'API Gemini place le nom du modèle dans l'URL : .../models/<MODEL>:generateContent
-GEMINI_URL_TEMPLATE = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+GEMINI_URL_TEMPLATE = (
+    "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+)
 
 
 class GeminiLLMClient(LLMClient):
     """Client HTTP pour l'API Generative Language de Google (Gemini)."""
 
-    def __init__(self, *, api_key: str | None = None, model: str | None = None,
-                 timeout: int | None = None) -> None:
+    def __init__(
+        self, *, api_key: str | None = None, model: str | None = None, timeout: int | None = None
+    ) -> None:
         self.api_key = api_key if api_key is not None else settings.GEMINI_API_KEY
         self.model = model or settings.GEMINI_MODEL
         self.timeout = timeout or settings.LLM_API_TIMEOUT
@@ -50,14 +54,12 @@ class GeminiLLMClient(LLMClient):
                 # Clé dans l'en-tête (et non dans l'URL) : évite de la logger.
                 headers={
                     "x-goog-api-key": self.api_key,
-                    "Content-Type":   "application/json",
+                    "Content-Type": "application/json",
                 },
                 json={
                     # Consignes système isolées du contenu utilisateur.
                     "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
-                    "contents": [
-                        {"parts": [{"text": build_user_prompt(source_text, title)}]}
-                    ],
+                    "contents": [{"parts": [{"text": build_user_prompt(source_text, title)}]}],
                     "generationConfig": {
                         "temperature": 0.4,
                         # Force une sortie JSON stricte (équivalent du JSON mode).

@@ -10,6 +10,7 @@ responsabilités (le « quoi » envoyer vs le « comment » l'envoyer).
 Au Lot 3, ce module accueillera les emails métier : validation de compte et
 réinitialisation de mot de passe (avec leurs liens et leurs tokens).
 """
+
 from smtplib import SMTPAuthenticationError, SMTPException
 
 from django.conf import settings
@@ -55,15 +56,18 @@ def send_email(to_email: str, subject: str, body: str) -> None:
 # Emails métier (validation de compte, réinitialisation de mot de passe)
 # ----------------------------------------------------------------------------
 
+
 def _frontend(path: str) -> str:
     """Construit une URL absolue vers le frontend (pour les liens des emails)."""
     from django.conf import settings as s
+
     return f"{s.FRONTEND_URL.rstrip('/')}{path}"
 
 
 def send_verification_email(user) -> None:
     """Email de confirmation d'adresse, envoyé à l'inscription."""
     from .tokens import make_email_verify_token
+
     link = _frontend(f"/verify-email?token={make_email_verify_token(user)}")
     body = (
         "Bonjour,\n\n"
@@ -81,6 +85,7 @@ def send_verification_email(user) -> None:
 def send_password_reset_email(user) -> None:
     """Email de réinitialisation de mot de passe (lien avec token)."""
     from .tokens import make_password_reset_tokens
+
     uidb64, token = make_password_reset_tokens(user)
     link = _frontend(f"/reset-password?uid={uidb64}&token={token}")
     body = (

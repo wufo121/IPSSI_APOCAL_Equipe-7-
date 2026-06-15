@@ -9,6 +9,7 @@ prompt ou durcirez la validation (perturbations J3 « prompt injection » et J4
 « qualité »), vous le ferez à UN SEUL endroit, et tous les fournisseurs en
 profitent automatiquement.
 """
+
 import json
 import logging
 import re
@@ -47,9 +48,7 @@ def build_user_prompt(source_text: str, title: str) -> str:
     """Construit le message utilisateur (cours + consigne finale)."""
     truncated = source_text[:MAX_SOURCE_CHARS]
     return (
-        f"TITRE DU COURS : {title}\n\n"
-        f"COURS :\n{truncated}\n\n"
-        f"GÉNÈRE LE JSON MAINTENANT :"
+        f"TITRE DU COURS : {title}\n\n" f"COURS :\n{truncated}\n\n" f"GÉNÈRE LE JSON MAINTENANT :"
     )
 
 
@@ -81,7 +80,7 @@ def parse_and_validate_quiz(raw: str) -> list[dict]:
         # 2. Fallback : extrait le premier bloc { ... } si du texte entoure le JSON
         match = re.search(r"\{[\s\S]*\}", raw)
         if not match:
-            raise LLMError("Aucun bloc JSON trouvé dans la réponse LLM.")
+            raise LLMError("Aucun bloc JSON trouvé dans la réponse LLM.") from None
         try:
             data = json.loads(match.group(0))
         except json.JSONDecodeError as exc:
@@ -120,10 +119,12 @@ def parse_and_validate_quiz(raw: str) -> list[dict]:
         if not isinstance(correct_index, int) or correct_index not in (0, 1, 2, 3):
             raise LLMError(f"Question {i} : correct_index doit être 0, 1, 2 ou 3.")
 
-        cleaned.append({
-            "prompt":        prompt.strip(),
-            "options":       [o.strip() for o in options],
-            "correct_index": correct_index,
-        })
+        cleaned.append(
+            {
+                "prompt": prompt.strip(),
+                "options": [o.strip() for o in options],
+                "correct_index": correct_index,
+            }
+        )
 
     return cleaned

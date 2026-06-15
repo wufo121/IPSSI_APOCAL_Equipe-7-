@@ -1,4 +1,5 @@
 """Sérialiseurs de l'app administration (Lot 8)."""
+
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
@@ -13,8 +14,12 @@ class SiteConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = SiteConfig
         fields = [
-            "app_name", "allow_signups", "require_email_verification",
-            "banner_enabled", "banner_message", "updated_at",
+            "app_name",
+            "allow_signups",
+            "require_email_verification",
+            "banner_enabled",
+            "banner_message",
+            "updated_at",
         ]
         read_only_fields = ["updated_at"]
 
@@ -36,8 +41,16 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id", "email", "first_name", "last_name", "date_joined",
-            "is_active", "is_staff", "is_superuser", "email_verified", "quiz_count",
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "date_joined",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "email_verified",
+            "quiz_count",
         ]
         read_only_fields = fields
 
@@ -68,5 +81,6 @@ class LLMConfigUpdateSerializer(serializers.Serializer):
     ollama_host = serializers.CharField(required=False, allow_blank=True)
     timeout = serializers.IntegerField(required=False, allow_null=True, min_value=0)
     api_keys = serializers.DictField(
-        child=serializers.CharField(allow_blank=True), required=False,
+        child=serializers.CharField(allow_blank=True),
+        required=False,
     )

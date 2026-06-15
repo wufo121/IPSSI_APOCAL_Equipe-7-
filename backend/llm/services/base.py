@@ -1,4 +1,5 @@
 """Interface abstraite pour un client LLM générateur de quiz."""
+
 from abc import ABC, abstractmethod
 
 

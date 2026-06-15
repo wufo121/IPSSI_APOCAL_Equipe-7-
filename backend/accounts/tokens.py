@@ -10,6 +10,7 @@ token en base :
   dès que le mot de passe change ou après expiration. C'est le mécanisme
   éprouvé qu'utilise l'admin Django — on ne réinvente pas la roue.
 """
+
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
@@ -21,6 +22,7 @@ EMAIL_VERIFY_MAX_AGE = 60 * 60 * 24 * 3  # 3 jours en secondes
 
 
 # --- Validation d'email (token signé, sans stockage en base) ---
+
 
 def make_email_verify_token(user) -> str:
     """Crée un token signé contenant l'id de l'utilisateur."""
@@ -37,6 +39,7 @@ def read_email_verify_token(token: str) -> int | None:
 
 
 # --- Réinitialisation de mot de passe (mécanisme standard Django) ---
+
 
 def make_password_reset_tokens(user) -> tuple[str, str]:
     """Renvoie (uidb64, token) à mettre dans le lien de réinitialisation."""

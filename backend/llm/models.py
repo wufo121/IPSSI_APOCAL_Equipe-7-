@@ -15,6 +15,7 @@ pour un kit pédagogique, mais en PRODUCTION il faudrait les chiffrer (ex. Ferne
 ou utiliser un gestionnaire de secrets. L'API d'admin ne les renvoie jamais en
 clair (elle indique seulement si une clé est définie).
 """
+
 from django.db import models
 
 
@@ -24,23 +25,31 @@ class LLMConfig(models.Model):
     SINGLETON_ID = 1
 
     backend = models.CharField(
-        max_length=20, blank=True, default="",
+        max_length=20,
+        blank=True,
+        default="",
         help_text="Fournisseur actif. Vide = utiliser LLM_BACKEND du .env.",
     )
     model = models.CharField(
-        max_length=120, blank=True, default="",
+        max_length=120,
+        blank=True,
+        default="",
         help_text="Modèle pour le fournisseur actif. Vide = défaut du .env.",
     )
     api_keys = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text="Clés API par fournisseur : {provider: clé}. Stockées en base.",
     )
     ollama_host = models.CharField(
-        max_length=200, blank=True, default="",
+        max_length=200,
+        blank=True,
+        default="",
         help_text="URL du serveur Ollama. Vide = OLLAMA_HOST du .env.",
     )
     timeout = models.PositiveIntegerField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="Timeout (s) override. Vide = défaut selon le fournisseur.",
     )
     updated_at = models.DateTimeField(auto_now=True)

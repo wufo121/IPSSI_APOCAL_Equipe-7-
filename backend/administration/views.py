@@ -15,11 +15,12 @@ Endpoints d'administration (Lot 8). Tous réservés aux comptes staff
     POST  /api/admin/seed/                   — insérer des données de démo
     POST  /api/admin/reset-data/             — VIDER la base (destructif, confirmé)
 """
+
 import logging
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
@@ -34,9 +35,13 @@ from llm.providers import PROVIDERS
 from quizzes.models import Question, Quiz
 
 from .models import SiteConfig
-from .serializers import (AdminUserSerializer, AdminUserUpdateSerializer,
-                          LLMConfigUpdateSerializer, SiteConfigPublicSerializer,
-                          SiteConfigSerializer)
+from .serializers import (
+    AdminUserSerializer,
+    AdminUserUpdateSerializer,
+    LLMConfigUpdateSerializer,
+    SiteConfigPublicSerializer,
+    SiteConfigSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +49,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Public : config minimale du site (le front s'y adapte)
 # ---------------------------------------------------------------------------
+
 
 class PublicSiteConfigView(APIView):
     """Config PUBLIQUE : nom de l'app, bannière, inscriptions ouvertes."""
@@ -58,6 +64,7 @@ class PublicSiteConfigView(APIView):
 # ---------------------------------------------------------------------------
 # Config du site (admin)
 # ---------------------------------------------------------------------------
+
 
 class SiteConfigAdminView(APIView):
     permission_classes = [IsAdminUser]
@@ -78,6 +85,7 @@ class SiteConfigAdminView(APIView):
 # Config LLM (admin) — choix fournisseur + modèle + clés + AIDE par fournisseur
 # ---------------------------------------------------------------------------
 
+
 class LLMConfigAdminView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -85,25 +93,31 @@ class LLMConfigAdminView(APIView):
         """Liste des fournisseurs avec leur aide (pour l'UI)."""
         return [
             {
-                "key": p.key, "label": p.label, "cloud": p.cloud, "paid": p.paid,
-                "needs_key": p.needs_key, "default_model": p.default_model,
-                "help": p.help, "keys_url": p.keys_url,
+                "key": p.key,
+                "label": p.label,
+                "cloud": p.cloud,
+                "paid": p.paid,
+                "needs_key": p.needs_key,
+                "default_model": p.default_model,
+                "help": p.help,
+                "keys_url": p.keys_url,
             }
             for p in PROVIDERS.values()
         ]
 
     def _serialize(self, cfg: LLMConfig) -> dict:
         from llm.services.factory import resolve_active
+
         # On NE renvoie JAMAIS les clés en clair : seulement « définie ou non ».
         api_keys_set = {k: bool((cfg.api_keys or {}).get(k)) for k in PROVIDERS}
         return {
-            "backend":      cfg.backend,
-            "model":        cfg.model,
-            "ollama_host":  cfg.ollama_host,
-            "timeout":      cfg.timeout,
+            "backend": cfg.backend,
+            "model": cfg.model,
+            "ollama_host": cfg.ollama_host,
+            "timeout": cfg.timeout,
             "api_keys_set": api_keys_set,
-            "providers":    self._providers_payload(),
-            "effective":    resolve_active(),  # ce qui sera RÉELLEMENT utilisé (repli .env)
+            "providers": self._providers_payload(),
+            "effective": resolve_active(),  # ce qui sera RÉELLEMENT utilisé (repli .env)
         }
 
     @extend_schema(responses={200: OpenApiResponse(description="Config LLM + fournisseurs")})
@@ -113,8 +127,10 @@ class LLMConfigAdminView(APIView):
         payload["effective"].pop("api_key", None)
         return Response(payload)
 
-    @extend_schema(request=LLMConfigUpdateSerializer,
-                   responses={200: OpenApiResponse(description="Config LLM mise à jour")})
+    @extend_schema(
+        request=LLMConfigUpdateSerializer,
+        responses={200: OpenApiResponse(description="Config LLM mise à jour")},
+    )
     def patch(self, request):
         serializer = LLMConfigUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -156,6 +172,7 @@ class LLMConfigAdminView(APIView):
 # Gestion des utilisateurs (admin)
 # ---------------------------------------------------------------------------
 
+
 class AdminUserListView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -165,8 +182,10 @@ class AdminUserListView(APIView):
         qs = User.objects.all().order_by("-date_joined")
         if q:
             qs = qs.filter(
-                Q(email__icontains=q) | Q(username__icontains=q)
-                | Q(first_name__icontains=q) | Q(last_name__icontains=q)
+                Q(email__icontains=q)
+                | Q(username__icontains=q)
+                | Q(first_name__icontains=q)
+                | Q(last_name__icontains=q)
             )
         qs = qs[:200]  # garde-fou : on plafonne (sinon ajouter une vraie pagination)
         return Response(AdminUserSerializer(qs, many=True).data)
@@ -178,11 +197,15 @@ class AdminUserDetailView(APIView):
     def _guard(self, request, target: User) -> Response | None:
         """Empêche les actions dangereuses (auto-sabotage, toucher un superuser)."""
         if target.id == request.user.id:
-            return Response({"detail": "Vous ne pouvez pas modifier/supprimer votre propre compte ici."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Vous ne pouvez pas modifier/supprimer votre propre compte ici."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if target.is_superuser and not request.user.is_superuser:
-            return Response({"detail": "Action interdite sur un super-administrateur."},
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Action interdite sur un super-administrateur."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         return None
 
     @extend_schema(request=AdminUserUpdateSerializer, responses={200: AdminUserSerializer})
@@ -236,6 +259,7 @@ class AdminUserResendVerificationView(APIView):
 # Vue d'ensemble + opérations base
 # ---------------------------------------------------------------------------
 
+
 class AdminStatsView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -244,16 +268,19 @@ class AdminStatsView(APIView):
         users = User.objects.all()
         quizzes = Quiz.objects.all()
         taken = quizzes.filter(score__isnull=False)
-        return Response({
-            "users_total":     users.count(),
-            "users_active":    users.filter(is_active=True).count(),
-            "users_staff":     users.filter(is_staff=True).count(),
-            "quizzes_total":   quizzes.count(),
-            "quizzes_taken":   taken.count(),
-            "average_score":   round(taken.aggregate(a=Avg("score"))["a"], 1)
-                               if taken.exists() else None,
-            "questions_total": Question.objects.count(),
-        })
+        return Response(
+            {
+                "users_total": users.count(),
+                "users_active": users.filter(is_active=True).count(),
+                "users_staff": users.filter(is_staff=True).count(),
+                "quizzes_total": quizzes.count(),
+                "quizzes_taken": taken.count(),
+                "average_score": (
+                    round(taken.aggregate(a=Avg("score"))["a"], 1) if taken.exists() else None
+                ),
+                "questions_total": Question.objects.count(),
+            }
+        )
 
 
 class AdminSeedView(APIView):
@@ -265,8 +292,9 @@ class AdminSeedView(APIView):
             call_command("seed")
         except Exception as exc:  # noqa: BLE001 (on renvoie un message lisible)
             logger.exception("Echec du seed")
-            return Response({"detail": f"Echec du seed : {exc}"},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"detail": f"Echec du seed : {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         return Response({"detail": "Données de démo insérées (voir la commande seed)."})
 
 
@@ -279,12 +307,16 @@ class AdminResetDataView(APIView):
     def post(self, request):
         # Double confirmation : phrase exacte + mot de passe de l'admin.
         if request.data.get("confirm") != "RESET":
-            return Response({"detail": "Confirmation manquante (envoyez confirm = \"RESET\")."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": 'Confirmation manquante (envoyez confirm = "RESET").'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         password = request.data.get("password") or ""
         if not request.user.check_password(password):
-            return Response({"detail": "Mot de passe administrateur incorrect."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Mot de passe administrateur incorrect."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         include_users = bool(request.data.get("include_users"))
 
@@ -299,10 +331,16 @@ class AdminResetDataView(APIView):
             nb_users = victims.count()
             victims.delete()
 
-        logger.warning("[ADMIN] reset-data par %s : %s quiz, %s users supprimés",
-                       request.user.email, nb_quizzes, nb_users)
-        return Response({
-            "detail": "Base réinitialisée.",
-            "deleted_quizzes": nb_quizzes,
-            "deleted_users": nb_users,
-        })
+        logger.warning(
+            "[ADMIN] reset-data par %s : %s quiz, %s users supprimés",
+            request.user.email,
+            nb_quizzes,
+            nb_users,
+        )
+        return Response(
+            {
+                "detail": "Base réinitialisée.",
+                "deleted_quizzes": nb_quizzes,
+                "deleted_users": nb_users,
+            }
+        )

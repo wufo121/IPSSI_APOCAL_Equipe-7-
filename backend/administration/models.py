@@ -5,6 +5,7 @@ Configuration globale du site (Lot 8).
 base (pk=1) qui contient les réglages applicatifs modifiables depuis l'interface
 d'administration, sans redéployer.
 """
+
 from django.db import models
 
 
@@ -14,7 +15,8 @@ class SiteConfig(models.Model):
     SINGLETON_ID = 1
 
     app_name = models.CharField(
-        max_length=80, default="EduTutor IA",
+        max_length=80,
+        default="EduTutor IA",
         help_text="Nom affiché dans l'en-tête et les emails.",
     )
     allow_signups = models.BooleanField(
@@ -30,7 +32,8 @@ class SiteConfig(models.Model):
         help_text="Afficher une bannière d'information à tous les utilisateurs.",
     )
     banner_message = models.TextField(
-        blank=True, default="",
+        blank=True,
+        default="",
         help_text="Texte de la bannière globale (maintenance, annonce…).",
     )
     updated_at = models.DateTimeField(auto_now=True)

@@ -12,6 +12,7 @@ backend d'authentification custom. C'est le compromis le plus simple pour un
 kit pédagogique (un vrai produit utiliserait souvent un User personnalisé avec
 USERNAME_FIELD = 'email').
 """
+
 from django.conf import settings
 from django.db import models
 

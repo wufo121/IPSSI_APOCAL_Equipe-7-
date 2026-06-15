@@ -5,6 +5,7 @@ Lit les variables sensibles depuis `.env` via python-decouple.
 La config se veut pédagogique : commentaires partout, sections clairement
 séparées. Adaptez ce qui vous est utile.
 """
+
 from pathlib import Path
 
 from decouple import Csv, config
@@ -81,11 +82,11 @@ TEMPLATES = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME":     config("POSTGRES_DB",       default="apocal"),
-        "USER":     config("POSTGRES_USER",     default="apocal"),
+        "NAME": config("POSTGRES_DB", default="apocal"),
+        "USER": config("POSTGRES_USER", default="apocal"),
         "PASSWORD": config("POSTGRES_PASSWORD", default="apocal-dev-only"),
-        "HOST":     config("POSTGRES_HOST",     default="postgres"),
-        "PORT":     config("POSTGRES_PORT",     default="5432"),
+        "HOST": config("POSTGRES_HOST", default="postgres"),
+        "PORT": config("POSTGRES_PORT", default="5432"),
     }
 }
 
@@ -94,8 +95,10 @@ DATABASES = {
 # ----------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-     "OPTIONS": {"min_length": 8}},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -139,14 +142,14 @@ REST_FRAMEWORK = {
 # drf-spectacular (OpenAPI / Swagger)
 # ----------------------------------------------------------------------------
 SPECTACULAR_SETTINGS = {
-    "TITLE":       "APOCAL'IPSSI 2026 — EduTutor IA API",
+    "TITLE": "APOCAL'IPSSI 2026 — EduTutor IA API",
     "DESCRIPTION": "Plateforme de révision personnalisée à base de LLM. "
-                   "Auth, génération de quiz, historique de progression.",
-    "VERSION":     "0.1.0",
+    "Auth, génération de quiz, historique de progression.",
+    "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "CONTACT": {
         "name": "Mohamed Amine EL AFRIT",
-        "url":  "https://www.mohamedelafrit.com",
+        "url": "https://www.mohamedelafrit.com",
     },
     "LICENSE": {"name": "CC BY-NC-SA 4.0"},
 }
@@ -185,10 +188,10 @@ CORS_ALLOW_CREDENTIALS = True
 #   "openai"     -> API OpenAI (CLOUD, PAYANT, future version premium)
 #   "anthropic"  -> API Anthropic / Claude (CLOUD, PAYANT, future version premium)
 #   "mock"       -> faux QCM instantanés (tests / dev sans LLM)
-LLM_BACKEND  = config("LLM_BACKEND",  default="ollama")
+LLM_BACKEND = config("LLM_BACKEND", default="ollama")
 
 # --- Ollama (local, gratuit) ---
-OLLAMA_HOST  = config("OLLAMA_HOST",  default="http://ollama:11434")
+OLLAMA_HOST = config("OLLAMA_HOST", default="http://ollama:11434")
 OLLAMA_MODEL = config("OLLAMA_MODEL", default="llama3.1:8b")
 # Délai max (secondes) d'attente d'une génération Ollama. Sur CPU, un modèle 8B
 # met facilement 2 à 5 minutes pour 10 QCM : 120 s était trop court (timeout ->
@@ -199,36 +202,36 @@ OLLAMA_TIMEOUT = config("OLLAMA_TIMEOUT", default=600, cast=int)
 # Laissez OPENAI_API_KEY vide en dev : le backend "openai" refusera de démarrer
 # sans clé, ce qui est volontaire (évite les frais accidentels).
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
-OPENAI_MODEL   = config("OPENAI_MODEL",   default="gpt-4o-mini")
+OPENAI_MODEL = config("OPENAI_MODEL", default="gpt-4o-mini")
 
 # --- Anthropic / Claude (API payante) ---
 ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
-ANTHROPIC_MODEL   = config("ANTHROPIC_MODEL",   default="claude-3-5-haiku-20241022")
+ANTHROPIC_MODEL = config("ANTHROPIC_MODEL", default="claude-3-5-haiku-20241022")
 
 # --- Google Gemini (API cloud, FREE TIER disponible) ---
 # Clé gratuite : https://aistudio.google.com/apikey
 GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
-GEMINI_MODEL   = config("GEMINI_MODEL",   default="gemini-1.5-flash")
+GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-1.5-flash")
 
 # --- Groq (API cloud format OpenAI, très rapide, free tier) ---
 # Clé gratuite : https://console.groq.com/keys
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
-GROQ_MODEL   = config("GROQ_MODEL",   default="llama-3.3-70b-versatile")
+GROQ_MODEL = config("GROQ_MODEL", default="llama-3.3-70b-versatile")
 
 # --- Cerebras Cloud (API cloud format OpenAI, très rapide, free tier) ---
 # Clé gratuite : https://cloud.cerebras.ai/
 CEREBRAS_API_KEY = config("CEREBRAS_API_KEY", default="")
-CEREBRAS_MODEL   = config("CEREBRAS_MODEL",   default="llama-3.3-70b")
+CEREBRAS_MODEL = config("CEREBRAS_MODEL", default="llama-3.3-70b")
 
 # --- Mistral AI (API cloud format OpenAI, fournisseur européen, free tier) ---
 # Clé : https://console.mistral.ai/
 MISTRAL_API_KEY = config("MISTRAL_API_KEY", default="")
-MISTRAL_MODEL   = config("MISTRAL_MODEL",   default="mistral-small-latest")
+MISTRAL_MODEL = config("MISTRAL_MODEL", default="mistral-small-latest")
 
 # --- OpenRouter (passerelle multi-modèles, format OpenAI) ---
 # Clé : https://openrouter.ai/keys  | modèle au format "editeur/modele" (suffixe ":free" possible)
 OPENROUTER_API_KEY = config("OPENROUTER_API_KEY", default="")
-OPENROUTER_MODEL   = config("OPENROUTER_MODEL",   default="meta-llama/llama-3.1-8b-instruct")
+OPENROUTER_MODEL = config("OPENROUTER_MODEL", default="meta-llama/llama-3.1-8b-instruct")
 
 # Délai max (secondes) pour les API cloud, bien plus rapides qu'un modèle local sur CPU.
 LLM_API_TIMEOUT = config("LLM_API_TIMEOUT", default=60, cast=int)
@@ -247,21 +250,19 @@ LLM_API_TIMEOUT = config("LLM_API_TIMEOUT", default=60, cast=int)
 # utilisez la clé SMTP (https://app.brevo.com/settings/keys/smtp).
 BREVO_SMTP_KEY = config("BREVO_SMTP_KEY", default="")
 if BREVO_SMTP_KEY:
-    EMAIL_BACKEND       = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST          = config("BREVO_SMTP_HOST",  default="smtp-relay.brevo.com")
-    EMAIL_PORT          = config("BREVO_SMTP_PORT",  default=587, cast=int)
-    EMAIL_HOST_USER     = config("BREVO_SMTP_LOGIN", default="")
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = config("BREVO_SMTP_HOST", default="smtp-relay.brevo.com")
+    EMAIL_PORT = config("BREVO_SMTP_PORT", default=587, cast=int)
+    EMAIL_HOST_USER = config("BREVO_SMTP_LOGIN", default="")
     EMAIL_HOST_PASSWORD = BREVO_SMTP_KEY
-    EMAIL_USE_TLS       = True
+    EMAIL_USE_TLS = True
 else:
     # Fallback dev : aucun email réel envoyé, tout s'affiche dans les logs.
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Adresse expéditeur par défaut. En prod, ce doit être un expéditeur VALIDÉ
 # dans Brevo (sinon les emails sont rejetés).
-DEFAULT_FROM_EMAIL = config(
-    "DEFAULT_FROM_EMAIL", default="EduTutor IA <no-reply@edututor.local>"
-)
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="EduTutor IA <no-reply@edututor.local>")
 
 # URL publique du frontend, utilisée pour construire les liens cliquables dans
 # les emails (validation de compte, réinitialisation de mot de passe — Lot 3).

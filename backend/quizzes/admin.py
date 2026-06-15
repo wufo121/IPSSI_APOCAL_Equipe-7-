@@ -11,14 +11,14 @@ class QuestionInline(admin.TabularInline):
 
 @admin.register(Quiz)
 class QuizAdmin(admin.ModelAdmin):
-    list_display  = ["title", "user", "score", "created_at"]
-    list_filter   = ["user", "created_at"]
+    list_display = ["title", "user", "score", "created_at"]
+    list_filter = ["user", "created_at"]
     search_fields = ["title", "source_text"]
-    inlines       = [QuestionInline]
+    inlines = [QuestionInline]
 
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display  = ["quiz", "index", "prompt"]
-    list_filter   = ["quiz"]
+    list_display = ["quiz", "index", "prompt"]
+    list_filter = ["quiz"]
     search_fields = ["prompt"]

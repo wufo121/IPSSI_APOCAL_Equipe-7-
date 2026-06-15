@@ -11,6 +11,7 @@ mutualisés dans quiz_prompt.py).
 
 En dev : préférez Ollama (gratuit, local). Ce client vise une future version premium.
 """
+
 import requests
 from django.conf import settings
 
@@ -24,8 +25,9 @@ ANTHROPIC_VERSION = "2023-06-01"
 class AnthropicLLMClient(LLMClient):
     """Client HTTP pour l'API Messages d'Anthropic (Claude)."""
 
-    def __init__(self, *, api_key: str | None = None, model: str | None = None,
-                 timeout: int | None = None) -> None:
+    def __init__(
+        self, *, api_key: str | None = None, model: str | None = None, timeout: int | None = None
+    ) -> None:
         self.api_key = api_key if api_key is not None else settings.ANTHROPIC_API_KEY
         self.model = model or settings.ANTHROPIC_MODEL
         self.timeout = timeout or settings.LLM_API_TIMEOUT
@@ -46,14 +48,14 @@ class AnthropicLLMClient(LLMClient):
             response = requests.post(
                 ANTHROPIC_URL,
                 headers={
-                    "x-api-key":         self.api_key,
+                    "x-api-key": self.api_key,
                     "anthropic-version": ANTHROPIC_VERSION,
-                    "content-type":      "application/json",
+                    "content-type": "application/json",
                 },
                 json={
                     "model": self.model,
-                    "max_tokens": 4096,          # obligatoire chez Anthropic ; large pour 10 QCM
-                    "system": SYSTEM_PROMPT,     # consignes isolées du contenu utilisateur
+                    "max_tokens": 4096,  # obligatoire chez Anthropic ; large pour 10 QCM
+                    "system": SYSTEM_PROMPT,  # consignes isolées du contenu utilisateur
                     "messages": [
                         {"role": "user", "content": build_user_prompt(source_text, title)},
                     ],

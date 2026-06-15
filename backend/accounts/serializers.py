@@ -5,13 +5,14 @@ Sérialiseurs pour l'app accounts.
 QUE l'email + le mot de passe ; en interne, username = email. Le login se fait
 donc par email. On gère explicitement les doublons d'email avec un message clair.
 """
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password as django_validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from .models import Profile, get_or_create_profile
+from .models import get_or_create_profile
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -21,8 +22,16 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name",
-                  "date_joined", "email_verified", "is_staff"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "date_joined",
+            "email_verified",
+            "is_staff",
+        ]
         read_only_fields = fields
 
     def get_email_verified(self, obj) -> bool:
@@ -33,24 +42,28 @@ class SignupSerializer(serializers.ModelSerializer):
     """Inscription par EMAIL (identifiant). Le username interne = email."""
 
     password = serializers.CharField(
-        write_only=True, min_length=8,
-        style={"input_type": "password"}, help_text="Au moins 8 caractères.",
+        write_only=True,
+        min_length=8,
+        style={"input_type": "password"},
+        help_text="Au moins 8 caractères.",
     )
 
     class Meta:
         model = User
         fields = ["email", "password", "first_name", "last_name"]
         extra_kwargs = {
-            "email":      {"required": True, "allow_blank": False},
+            "email": {"required": True, "allow_blank": False},
             "first_name": {"required": False},
-            "last_name":  {"required": False},
+            "last_name": {"required": False},
         }
 
     def validate_email(self, value: str) -> str:
         value = value.strip().lower()
         # L'email est l'identifiant -> il doit être unique (sur email ET username).
-        if (User.objects.filter(email__iexact=value).exists()
-                or User.objects.filter(username__iexact=value).exists()):
+        if (
+            User.objects.filter(email__iexact=value).exists()
+            or User.objects.filter(username__iexact=value).exists()
+        ):
             raise serializers.ValidationError(
                 "Un compte existe déjà avec cet email. Connectez-vous, ou "
                 "utilisez « mot de passe oublié » pour le réinitialiser."
@@ -61,7 +74,7 @@ class SignupSerializer(serializers.ModelSerializer):
         try:
             django_validate_password(value)
         except DjangoValidationError as exc:
-            raise serializers.ValidationError(list(exc.messages))
+            raise serializers.ValidationError(list(exc.messages)) from exc
         return value
 
     def create(self, validated_data: dict) -> User:
@@ -103,11 +116,13 @@ class LoginSerializer(serializers.Serializer):
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     """Demande de réinitialisation : juste l'email."""
+
     email = serializers.EmailField()
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     """Confirmation : uid + token (du lien email) + nouveau mot de passe."""
+
     uid = serializers.CharField()
     token = serializers.CharField()
     new_password = serializers.CharField(
@@ -118,18 +133,20 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         try:
             django_validate_password(value)
         except DjangoValidationError as exc:
-            raise serializers.ValidationError(list(exc.messages))
+            raise serializers.ValidationError(list(exc.messages)) from exc
         return value
 
 
 class EmailVerifySerializer(serializers.Serializer):
     """Validation d'email : le token reçu par email."""
+
     token = serializers.CharField()
 
 
 # ---------------------------------------------------------------------------
 # Gestion du profil (Lot 4) : modifier ses infos, son mot de passe, supprimer
 # ---------------------------------------------------------------------------
+
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     """Modification du profil : prénom, nom et email.
@@ -144,26 +161,20 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = ["first_name", "last_name", "email"]
         extra_kwargs = {
-            "email":      {"required": False},
+            "email": {"required": False},
             "first_name": {"required": False},
-            "last_name":  {"required": False},
+            "last_name": {"required": False},
         }
 
     def validate_email(self, value: str) -> str:
         value = value.strip().lower()
         # L'email doit rester unique, SAUF s'il s'agit déjà du mien (pas un doublon).
         clash = (
-            User.objects.filter(email__iexact=value)
-            .exclude(pk=self.instance.pk)
-            .exists()
-            or User.objects.filter(username__iexact=value)
-            .exclude(pk=self.instance.pk)
-            .exists()
+            User.objects.filter(email__iexact=value).exclude(pk=self.instance.pk).exists()
+            or User.objects.filter(username__iexact=value).exclude(pk=self.instance.pk).exists()
         )
         if clash:
-            raise serializers.ValidationError(
-                "Cet email est déjà utilisé par un autre compte."
-            )
+            raise serializers.ValidationError("Cet email est déjà utilisé par un autre compte.")
         return value
 
     def update(self, instance: User, validated_data: dict) -> User:
@@ -204,7 +215,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         try:
             django_validate_password(value, user=self.context["request"].user)
         except DjangoValidationError as exc:
-            raise serializers.ValidationError(list(exc.messages))
+            raise serializers.ValidationError(list(exc.messages)) from exc
         return value
 
 

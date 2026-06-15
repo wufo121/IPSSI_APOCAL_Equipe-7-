@@ -10,6 +10,7 @@ Vérifie la configuration email du kit.
 Exemple :
     docker exec apocalipssi-2026-backend python manage.py send_test_email moi@example.com
 """
+
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
@@ -46,13 +47,15 @@ class Command(BaseCommand):
                 ),
             )
         except Exception as exc:  # noqa: BLE001 — on veut afficher toute erreur SMTP
-            raise CommandError(f"Échec de l'envoi : {exc}")
+            raise CommandError(f"Échec de l'envoi : {exc}") from exc
 
         self.stdout.write("-" * 60)
         if is_console:
-            self.stdout.write(self.style.WARNING(
-                "Mode CONSOLE : aucun email réel envoyé — l'email ci-dessus est "
-                "affiché dans les logs. Renseignez BREVO_SMTP_KEY pour un envoi réel."
-            ))
+            self.stdout.write(
+                self.style.WARNING(
+                    "Mode CONSOLE : aucun email réel envoyé — l'email ci-dessus est "
+                    "affiché dans les logs. Renseignez BREVO_SMTP_KEY pour un envoi réel."
+                )
+            )
         else:
             self.stdout.write(self.style.SUCCESS(f"Email envoyé à {to} via Brevo. ✓"))

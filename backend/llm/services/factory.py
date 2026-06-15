@@ -12,6 +12,7 @@ Depuis le Lot 8, la configuration peut venir de DEUX sources, avec priorité :
 Le catalogue des fournisseurs (métadonnées + attributs settings de repli) est
 décrit une seule fois dans llm/providers.py.
 """
+
 import logging
 
 from django.conf import settings
@@ -36,15 +37,15 @@ CLOUD_BACKENDS = {k for k, p in PROVIDERS.items() if p.cloud}
 PAID_BACKENDS = {k for k, p in PROVIDERS.items() if p.paid}
 
 _BACKENDS = {
-    "mock":       MockLLMClient,
-    "ollama":     OllamaLLMClient,
-    "openai":     OpenAILLMClient,
-    "anthropic":  AnthropicLLMClient,
-    "gemini":     GeminiLLMClient,
-    "groq":       GroqLLMClient,
+    "mock": MockLLMClient,
+    "ollama": OllamaLLMClient,
+    "openai": OpenAILLMClient,
+    "anthropic": AnthropicLLMClient,
+    "gemini": GeminiLLMClient,
+    "groq": GroqLLMClient,
     "openrouter": OpenRouterLLMClient,
-    "cerebras":   CerebrasLLMClient,
-    "mistral":    MistralLLMClient,
+    "cerebras": CerebrasLLMClient,
+    "mistral": MistralLLMClient,
 }
 
 
@@ -72,11 +73,11 @@ def resolve_active() -> dict:
             )
 
     return {
-        "backend":     backend,
-        "model":       model,
-        "api_key":     api_key,
+        "backend": backend,
+        "model": model,
+        "api_key": api_key,
         "ollama_host": cfg.ollama_host or "",
-        "timeout":     cfg.timeout or None,
+        "timeout": cfg.timeout or None,
     }
 
 
@@ -97,7 +98,8 @@ def get_llm_client() -> LLMClient:
             "[LLM] Backend CLOUD activé : '%s' (%s). Les données du cours quittent "
             "le serveur local (enjeu RGPD, cf. perturbation J3-bis). En développement, "
             "préférez Ollama (local, gratuit, souverain).",
-            backend, cout,
+            backend,
+            cout,
         )
 
     client_cls = _BACKENDS.get(backend)

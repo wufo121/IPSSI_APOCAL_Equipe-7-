@@ -1,4 +1,5 @@
 """Enregistrement de la config LLM dans le Django admin."""
+
 from django.contrib import admin
 
 from .models import LLMConfig

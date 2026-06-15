@@ -10,6 +10,7 @@ Endpoints d'authentification (Lot 3 : email-identifiant + validation + reset).
     POST /api/accounts/password-reset/           — demander un reset (envoie un email)
     POST /api/accounts/password-reset/confirm/   — définir le nouveau mot de passe
 """
+
 import logging
 
 from django.contrib.auth import login as django_login
@@ -22,15 +23,19 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .emails import (EmailError, send_password_reset_email,
-                     send_verification_email)
+from .emails import EmailError, send_password_reset_email, send_verification_email
 from .models import get_or_create_profile
-from .serializers import (ChangePasswordSerializer, DeleteAccountSerializer,
-                          EmailVerifySerializer, LoginSerializer,
-                          PasswordResetConfirmSerializer,
-                          PasswordResetRequestSerializer,
-                          ProfileUpdateSerializer, SignupSerializer,
-                          UserSerializer)
+from .serializers import (
+    ChangePasswordSerializer,
+    DeleteAccountSerializer,
+    EmailVerifySerializer,
+    LoginSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    ProfileUpdateSerializer,
+    SignupSerializer,
+    UserSerializer,
+)
 from .tokens import read_email_verify_token, read_password_reset_tokens
 
 logger = logging.getLogger(__name__)
@@ -45,6 +50,7 @@ class SignupView(APIView):
     def post(self, request):
         # Lot 8 : l'admin peut fermer les inscriptions depuis l'interface.
         from administration.models import SiteConfig
+
         if not SiteConfig.load().allow_signups:
             return Response(
                 {"detail": "Les inscriptions sont actuellement fermées."},
@@ -70,8 +76,9 @@ class LoginView(APIView):
 
     permission_classes = [AllowAny]
 
-    @extend_schema(request=LoginSerializer,
-                   responses={200: OpenApiResponse(description="{ token, user }")})
+    @extend_schema(
+        request=LoginSerializer, responses={200: OpenApiResponse(description="{ token, user }")}
+    )
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -109,21 +116,26 @@ class VerifyEmailView(APIView):
 
     permission_classes = [AllowAny]
 
-    @extend_schema(request=EmailVerifySerializer,
-                   responses={200: OpenApiResponse(description="Email confirmé")})
+    @extend_schema(
+        request=EmailVerifySerializer,
+        responses={200: OpenApiResponse(description="Email confirmé")},
+    )
     def post(self, request):
         serializer = EmailVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         uid = read_email_verify_token(serializer.validated_data["token"])
         if uid is None:
-            return Response({"detail": "Lien de validation invalide ou expiré."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Lien de validation invalide ou expiré."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             user = User.objects.get(pk=uid)
         except User.DoesNotExist:
-            return Response({"detail": "Utilisateur introuvable."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Utilisateur introuvable."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         profile = get_or_create_profile(user)
         profile.email_verified = True
@@ -152,8 +164,10 @@ class PasswordResetRequestView(APIView):
 
     permission_classes = [AllowAny]
 
-    @extend_schema(request=PasswordResetRequestSerializer,
-                   responses={200: OpenApiResponse(description="Email envoyé si le compte existe")})
+    @extend_schema(
+        request=PasswordResetRequestSerializer,
+        responses={200: OpenApiResponse(description="Email envoyé si le compte existe")},
+    )
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -168,8 +182,12 @@ class PasswordResetRequestView(APIView):
 
         # Anti-énumération : réponse IDENTIQUE que le compte existe ou non
         # (on ne révèle pas quels emails sont enregistrés).
-        return Response({"detail": "Si un compte existe pour cet email, un lien "
-                                   "de réinitialisation vient d'être envoyé."})
+        return Response(
+            {
+                "detail": "Si un compte existe pour cet email, un lien "
+                "de réinitialisation vient d'être envoyé."
+            }
+        )
 
 
 class PasswordResetConfirmView(APIView):
@@ -177,8 +195,10 @@ class PasswordResetConfirmView(APIView):
 
     permission_classes = [AllowAny]
 
-    @extend_schema(request=PasswordResetConfirmSerializer,
-                   responses={200: OpenApiResponse(description="Mot de passe réinitialisé")})
+    @extend_schema(
+        request=PasswordResetConfirmSerializer,
+        responses={200: OpenApiResponse(description="Mot de passe réinitialisé")},
+    )
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -187,8 +207,10 @@ class PasswordResetConfirmView(APIView):
             serializer.validated_data["uid"], serializer.validated_data["token"]
         )
         if user is None:
-            return Response({"detail": "Lien de réinitialisation invalide ou expiré."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Lien de réinitialisation invalide ou expiré."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         user.set_password(serializer.validated_data["new_password"])
         user.save(update_fields=["password"])
@@ -199,12 +221,13 @@ class PasswordResetConfirmView(APIView):
 # Gestion du profil (Lot 4)
 # ---------------------------------------------------------------------------
 
+
 class ProfileView(APIView):
     """Profil de l'utilisateur connecté : consulter, modifier, supprimer.
 
-        GET    /api/accounts/profile/  — lire son profil
-        PATCH  /api/accounts/profile/  — modifier prénom / nom / email
-        DELETE /api/accounts/profile/  — supprimer définitivement son compte
+    GET    /api/accounts/profile/  — lire son profil
+    PATCH  /api/accounts/profile/  — modifier prénom / nom / email
+    DELETE /api/accounts/profile/  — supprimer définitivement son compte
     """
 
     permission_classes = [IsAuthenticated]
@@ -215,9 +238,7 @@ class ProfileView(APIView):
 
     @extend_schema(request=ProfileUpdateSerializer, responses={200: UserSerializer})
     def patch(self, request):
-        serializer = ProfileUpdateSerializer(
-            instance=request.user, data=request.data, partial=True
-        )
+        serializer = ProfileUpdateSerializer(instance=request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
@@ -231,8 +252,10 @@ class ProfileView(APIView):
 
         return Response(UserSerializer(user).data)
 
-    @extend_schema(request=DeleteAccountSerializer,
-                   responses={204: OpenApiResponse(description="Compte supprimé")})
+    @extend_schema(
+        request=DeleteAccountSerializer,
+        responses={204: OpenApiResponse(description="Compte supprimé")},
+    )
     def delete(self, request):
         # Suppression DURE (hard delete) : confirmée par le mot de passe.
         # [TODO J3-bis RGPD] Avant de supprimer, proposer un export des données
@@ -252,8 +275,10 @@ class ChangePasswordView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=ChangePasswordSerializer,
-                   responses={200: OpenApiResponse(description="Mot de passe modifié")})
+    @extend_schema(
+        request=ChangePasswordSerializer,
+        responses={200: OpenApiResponse(description="Mot de passe modifié")},
+    )
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)

@@ -10,14 +10,16 @@ format OpenAI. Le nom du modèle suit la forme « éditeur/modèle » (ex.
 json_mode=False par défaut : tous les modèles routés ne supportent pas le mode
 JSON strict. On s'appuie sur le prompt + le fallback d'extraction de quiz_prompt.
 """
+
 from django.conf import settings
 
 from .openai_compatible import OpenAICompatibleClient
 
 
 class OpenRouterLLMClient(OpenAICompatibleClient):
-    def __init__(self, *, api_key: str | None = None, model: str | None = None,
-                 timeout: int | None = None) -> None:
+    def __init__(
+        self, *, api_key: str | None = None, model: str | None = None, timeout: int | None = None
+    ) -> None:
         super().__init__(
             api_key=api_key if api_key is not None else settings.OPENROUTER_API_KEY,
             model=model or settings.OPENROUTER_MODEL,

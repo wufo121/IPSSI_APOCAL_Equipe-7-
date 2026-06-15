@@ -4,10 +4,10 @@ On utilise `pypdf` (léger, sans dépendance OCR — les PDF scannés ne marchen
 pas, c'est une limitation acceptée du MVP. L'OCR pourra être ajouté dans
 les pistes Release 2 par les équipes).
 """
+
 import io
 
 import pypdf
-
 
 MAX_PDF_SIZE_BYTES = 5 * 1024 * 1024  # 5 Mo
 
@@ -55,8 +55,7 @@ def extract_text_from_pdf(file_obj) -> str:
     full_text = "\n\n".join(pages_text).strip()
     if not full_text:
         raise PDFError(
-            "Aucun texte extractible (PDF scanné ou vide). "
-            "L'OCR n'est pas inclus dans le MVP."
+            "Aucun texte extractible (PDF scanné ou vide). " "L'OCR n'est pas inclus dans le MVP."
         )
 
     return full_text

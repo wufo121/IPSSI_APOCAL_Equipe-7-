@@ -5,6 +5,7 @@ Un Quiz appartient à un utilisateur ; il contient le texte source du cours
 (extrait du PDF ou collé en clair) et 10 Questions (QCM avec 4 options et
 1 bonne réponse).
 """
+
 from django.conf import settings
 from django.db import models
 

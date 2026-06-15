@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Point d'entrée des commandes Django (manage.py)."""
+
 import os
 import sys
 

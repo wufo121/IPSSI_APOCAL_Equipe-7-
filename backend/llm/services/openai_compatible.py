@@ -12,6 +12,7 @@ l'héritage en POO).
 Les fournisseurs au format DIFFÉRENT (Ollama, Anthropic, Gemini) gardent, eux,
 leur propre client dédié.
 """
+
 import requests
 from django.conf import settings
 
@@ -37,7 +38,7 @@ class OpenAICompatibleClient(LLMClient):
         self.model = model
         self.base_url = base_url.rstrip("/")
         self.provider_label = provider_label
-        self.json_mode = json_mode          # response_format json_object supporté ?
+        self.json_mode = json_mode  # response_format json_object supporté ?
         self.extra_headers = extra_headers or {}
         self.timeout = timeout or settings.LLM_API_TIMEOUT
         if not self.api_key:
@@ -59,7 +60,7 @@ class OpenAICompatibleClient(LLMClient):
             # Séparation system / user (défense de base contre l'injection, cf. J3).
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": build_user_prompt(source_text, title)},
+                {"role": "user", "content": build_user_prompt(source_text, title)},
             ],
             "temperature": 0.4,
         }
@@ -71,7 +72,7 @@ class OpenAICompatibleClient(LLMClient):
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type":  "application/json",
+            "Content-Type": "application/json",
         }
         headers.update(self.extra_headers)
 

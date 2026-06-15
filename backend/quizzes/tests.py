@@ -1,4 +1,5 @@
 """Tests pour l'app quizzes — K1 (list/detail) + K2 (answer)."""
+
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
@@ -76,6 +77,7 @@ def test_quiz_detail_404_for_other_users_quiz(auth_client, other_user):
 
 # --- K2 : answer endpoint ---
 
+
 def test_answer_all_correct(auth_client, sample_quiz):
     """Toutes les bonnes réponses (= 0 partout) → score 10/10."""
     response = auth_client.post(
@@ -102,8 +104,9 @@ def test_answer_all_wrong(auth_client, sample_quiz):
 
 def test_answer_partial(auth_client, sample_quiz):
     """5 bonnes + 5 mauvaises."""
-    answers = [{"index": i, "selected_index": 0} for i in range(1, 6)] + \
-              [{"index": i, "selected_index": 1} for i in range(6, 11)]
+    answers = [{"index": i, "selected_index": 0} for i in range(1, 6)] + [
+        {"index": i, "selected_index": 1} for i in range(6, 11)
+    ]
     response = auth_client.post(
         f"/api/quizzes/{sample_quiz.id}/answer/",
         {"answers": answers},
@@ -125,8 +128,11 @@ def test_answer_404_for_other_users_quiz(auth_client, other_user):
     other_quiz = Quiz.objects.create(user=other_user, title="Privé", source_text="...")
     for i in range(1, 11):
         Question.objects.create(
-            quiz=other_quiz, index=i, prompt=f"Q{i}",
-            options=["A","B","C","D"], correct_index=0,
+            quiz=other_quiz,
+            index=i,
+            prompt=f"Q{i}",
+            options=["A", "B", "C", "D"],
+            correct_index=0,
         )
     response = auth_client.post(
         f"/api/quizzes/{other_quiz.id}/answer/",

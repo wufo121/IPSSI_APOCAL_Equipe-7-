@@ -1,4 +1,5 @@
 """Tests pour l'app llm — K1 (ping) + K2 (generate-quiz)."""
+
 import pytest
 from django.contrib.auth.models import User
 from django.test import override_settings
@@ -29,7 +30,7 @@ def test_generate_quiz_with_text(auth_client):
     response = auth_client.post(
         "/api/llm/generate-quiz/",
         {
-            "title":       "Mon cours de test",
+            "title": "Mon cours de test",
             "source_text": "Lorem ipsum " * 50,
         },
         format="multipart",

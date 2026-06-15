@@ -1,4 +1,5 @@
 """Sérialiseurs pour les endpoints LLM (génération de quiz)."""
+
 from rest_framework import serializers
 
 
@@ -23,9 +24,11 @@ class GenerateQuizSerializer(serializers.Serializer):
             )
 
         if not pdf and len(source_text) < 200:
-            raise serializers.ValidationError({
-                "source_text": "Doit faire au moins 200 caractères.",
-            })
+            raise serializers.ValidationError(
+                {
+                    "source_text": "Doit faire au moins 200 caractères.",
+                }
+            )
 
         if pdf and not pdf.name.lower().endswith(".pdf"):
             raise serializers.ValidationError({"pdf": "Seuls les fichiers .pdf sont acceptés."})

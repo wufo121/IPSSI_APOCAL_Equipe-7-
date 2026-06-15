@@ -3,6 +3,7 @@
 Ces tests servent d'exemples : signup, login, logout, accès protégé.
 Lancez : pytest accounts/
 """
+
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
@@ -17,7 +18,9 @@ def client() -> APIClient:
 
 @pytest.fixture
 def user(db) -> User:
-    return User.objects.create_user(username="alice", email="alice@test.com", password="motdepasse123")
+    return User.objects.create_user(
+        username="alice", email="alice@test.com", password="motdepasse123"
+    )
 
 
 def test_signup_creates_user(client):
@@ -25,7 +28,7 @@ def test_signup_creates_user(client):
     response = client.post(
         "/api/accounts/signup/",
         {
-            "email":    "bob@test.com",
+            "email": "bob@test.com",
             "password": "motdepasse123",
         },
         format="json",

@@ -4,6 +4,7 @@ Mock LLM — utile pour les tests / dev sans Ollama.
 Génère 10 questions plausibles à partir des premiers mots du source_text.
 Activé via : LLM_BACKEND=mock dans le .env
 """
+
 import random
 
 from .base import LLMClient
@@ -30,9 +31,11 @@ class MockLLMClient(LLMClient):
                 f"Réponse D à propos de '{word}'",
             ]
             options[correct_idx] = f"✓ Bonne réponse mock pour '{word}' (question {i})"
-            questions.append({
-                "prompt":        f"[MOCK Q{i}] D'après le cours « {title} », quelle affirmation est correcte sur « {word} » ?",
-                "options":       options,
-                "correct_index": correct_idx,
-            })
+            questions.append(
+                {
+                    "prompt": f"[MOCK Q{i}] D'après le cours « {title} », quelle affirmation est correcte sur « {word} » ?",
+                    "options": options,
+                    "correct_index": correct_idx,
+                }
+            )
         return questions

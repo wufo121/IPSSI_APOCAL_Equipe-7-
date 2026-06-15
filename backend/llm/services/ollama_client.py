@@ -7,6 +7,7 @@ souveraineté des données + zéro coût. Sa contrepartie est la latence sur CPU
 (cf. perturbation J2). Le prompt et la validation sont mutualisés dans
 quiz_prompt.py et partagés avec les clients OpenAI / Claude.
 """
+
 import requests
 from django.conf import settings
 
@@ -17,8 +18,9 @@ from .quiz_prompt import build_full_prompt, parse_and_validate_quiz
 class OllamaLLMClient(LLMClient):
     """Client HTTP minimal pour Ollama (/api/generate)."""
 
-    def __init__(self, *, model: str | None = None, host: str | None = None,
-                 timeout: int | None = None) -> None:
+    def __init__(
+        self, *, model: str | None = None, host: str | None = None, timeout: int | None = None
+    ) -> None:
         # Overrides éventuels (config admin en base, Lot 8) sinon valeurs .env.
         self.host = (host or settings.OLLAMA_HOST).rstrip("/")
         self.model = model or settings.OLLAMA_MODEL
@@ -40,11 +42,11 @@ class OllamaLLMClient(LLMClient):
             response = requests.post(
                 f"{self.host}/api/generate",
                 json={
-                    "model":   self.model,
-                    "prompt":  prompt,
-                    "stream":  False,
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
                     "options": {"temperature": 0.4},  # peu de créativité : on veut du factuel
-                    "format":  "json",                # mode JSON strict d'Ollama si supporté
+                    "format": "json",  # mode JSON strict d'Ollama si supporté
                 },
                 timeout=self.timeout,
             )

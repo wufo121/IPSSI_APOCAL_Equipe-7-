@@ -1,4 +1,5 @@
 """Sérialiseurs pour Quiz et Question."""
+
 from rest_framework import serializers
 
 from .models import Question, Quiz
@@ -57,12 +58,8 @@ class SubmitAnswersSerializer(serializers.Serializer):
 
     def validate_answers(self, value):
         if len(value) != 10:
-            raise serializers.ValidationError(
-                f"10 réponses attendues, {len(value)} reçues."
-            )
+            raise serializers.ValidationError(f"10 réponses attendues, {len(value)} reçues.")
         indices = sorted(a["index"] for a in value)
         if indices != list(range(1, 11)):
-            raise serializers.ValidationError(
-                "Les indices doivent couvrir 1..10 sans doublon."
-            )
+            raise serializers.ValidationError("Les indices doivent couvrir 1..10 sans doublon.")
         return value
