@@ -13,6 +13,8 @@ kit pédagogique (un vrai produit utiliserait souvent un User personnalisé avec
 USERNAME_FIELD = 'email').
 """
 
+import hashlib
+
 from django.conf import settings
 from django.db import models
 
@@ -32,6 +34,48 @@ class Profile(models.Model):
 
     def __str__(self) -> str:
         return f"Profile<{self.user.email or self.user.username}>"
+
+
+class DataRequest(models.Model):
+    """Audit trail des demandes d'accès RGPD (SAR — Subject Access Request, Art. 15)."""
+
+    STATUS_RECEIVED = "received"
+    STATUS_PROCESSING = "processing"
+    STATUS_COMPLETED = "completed"
+    STATUS_CHOICES = [
+        (STATUS_RECEIVED, "Reçue"),
+        (STATUS_PROCESSING, "En cours"),
+        (STATUS_COMPLETED, "Répondue"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="data_requests",
+        help_text="Utilisateur ayant effectué la demande.",
+    )
+    requested_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_RECEIVED)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    export_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="SHA-256 du fichier JSON exporté (preuve d'intégrité).",
+    )
+
+    class Meta:
+        ordering = ["-requested_at"]
+        verbose_name = "Demande d'accès (SAR)"
+        verbose_name_plural = "Demandes d'accès (SAR)"
+
+    def __str__(self) -> str:
+        user_label = self.user.email if self.user else "compte supprimé"
+        return f"SAR<{user_label}> — {self.status} — {self.requested_at:%Y-%m-%d %H:%M}"
+
+    @staticmethod
+    def compute_hash(data: bytes) -> str:
+        return hashlib.sha256(data).hexdigest()
 
 
 def get_or_create_profile(user) -> Profile:
