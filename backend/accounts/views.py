@@ -11,11 +11,17 @@ Endpoints d'authentification (Lot 3 : email-identifiant + validation + reset).
     POST /api/accounts/password-reset/confirm/   — définir le nouveau mot de passe
 """
 
+import csv
+import io
+import json
 import logging
+from datetime import timezone
 
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.models import User
+from django.http import HttpResponse
+from django.utils import timezone as django_timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -24,7 +30,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .emails import EmailError, send_password_reset_email, send_verification_email
-from .models import get_or_create_profile
+from .models import DataRequest, get_or_create_profile
 from .serializers import (
     ChangePasswordSerializer,
     DeleteAccountSerializer,
@@ -303,3 +309,156 @@ class ChangePasswordView(APIView):
         Token.objects.filter(user=user).delete()
         token = Token.objects.create(user=user)
         return Response({"detail": "Mot de passe modifié.", "token": token.key})
+
+
+# ---------------------------------------------------------------------------
+# Export RGPD (J3-bis — Art. 15 & 20)
+# ---------------------------------------------------------------------------
+
+
+def _build_export_payload(user) -> dict:
+    """Construit le dictionnaire complet des données personnelles d'un utilisateur.
+
+    Filtrage strict par user : aucune donnée d'un autre compte ne peut fuir.
+    """
+    from quizzes.models import Question, Quiz
+
+    profile = get_or_create_profile(user)
+
+    quizzes_data = []
+    for quiz in Quiz.objects.filter(user=user).prefetch_related("questions"):
+        quizzes_data.append(
+            {
+                "id": quiz.id,
+                "title": quiz.title,
+                "source_text": quiz.source_text,
+                "score": quiz.score,
+                "created_at": quiz.created_at.isoformat(),
+                "updated_at": quiz.updated_at.isoformat(),
+                "questions": [
+                    {
+                        "index": q.index,
+                        "prompt": q.prompt,
+                        "options": q.options,
+                        "correct_index": q.correct_index,
+                        "selected_index": q.selected_index,
+                    }
+                    for q in quiz.questions.all()
+                ],
+            }
+        )
+
+    sar_logs = [
+        {
+            "requested_at": dr.requested_at.isoformat(),
+            "status": dr.status,
+            "responded_at": dr.responded_at.isoformat() if dr.responded_at else None,
+            "export_hash": dr.export_hash,
+        }
+        for dr in DataRequest.objects.filter(user=user)
+    ]
+
+    return {
+        "export_date": django_timezone.now().isoformat(),
+        "rgpd_basis": "Art. 15 & 20 RGPD — droit d'accès et portabilité",
+        "account": {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "date_joined": user.date_joined.isoformat(),
+            "last_login": user.last_login.isoformat() if user.last_login else None,
+            "email_verified": profile.email_verified,
+            "profile_created_at": profile.created_at.isoformat(),
+        },
+        "quizzes": quizzes_data,
+        "signalements": [],
+        "sar_audit_trail": sar_logs,
+    }
+
+
+class ExportMyDataView(APIView):
+    """Export RGPD Art. 15 & 20 — renvoie toutes les données personnelles de l'utilisateur.
+
+    GET /api/accounts/me/export/          → JSON (défaut)
+    GET /api/accounts/me/export/?format=csv → CSV (une ligne par quiz)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description="Export RGPD (JSON ou CSV)")}
+    )
+    def get(self, request):
+        user = request.user
+        fmt = request.query_params.get("format", "json").lower()
+
+        payload = _build_export_payload(user)
+        json_bytes = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+
+        # Audit trail : on enregistre la demande et on la marque immédiatement répondue.
+        dr = DataRequest.objects.create(
+            user=user,
+            status=DataRequest.STATUS_COMPLETED,
+            responded_at=django_timezone.now(),
+            export_hash=DataRequest.compute_hash(json_bytes),
+        )
+
+        timestamp = django_timezone.now().strftime("%Y%m%d_%H%M%S")
+
+        if fmt == "csv":
+            return self._csv_response(payload, timestamp)
+
+        response = HttpResponse(json_bytes, content_type="application/json; charset=utf-8")
+        response["Content-Disposition"] = (
+            f'attachment; filename="export_rgpd_{timestamp}.json"'
+        )
+        return response
+
+    @staticmethod
+    def _csv_response(payload: dict, timestamp: str) -> HttpResponse:
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        writer.writerow(["# Export RGPD EduTutor IA", f"date={payload['export_date']}"])
+        writer.writerow([])
+
+        # Compte
+        writer.writerow(["=== COMPTE ==="])
+        acc = payload["account"]
+        writer.writerow(["id", "email", "prénom", "nom", "date_inscription", "email_vérifié"])
+        writer.writerow([
+            acc["id"], acc["email"], acc["first_name"], acc["last_name"],
+            acc["date_joined"], acc["email_verified"],
+        ])
+        writer.writerow([])
+
+        # Quizz
+        writer.writerow(["=== QUIZZ ==="])
+        writer.writerow(["quiz_id", "titre", "score", "créé_le", "question_index",
+                         "énoncé", "options", "bonne_réponse", "réponse_donnée"])
+        for quiz in payload["quizzes"]:
+            if not quiz["questions"]:
+                writer.writerow([quiz["id"], quiz["title"], quiz["score"],
+                                 quiz["created_at"], "", "", "", "", ""])
+            for q in quiz["questions"]:
+                writer.writerow([
+                    quiz["id"], quiz["title"], quiz["score"], quiz["created_at"],
+                    q["index"], q["prompt"], "|".join(q["options"]),
+                    q["correct_index"], q["selected_index"],
+                ])
+        writer.writerow([])
+
+        # SAR
+        writer.writerow(["=== HISTORIQUE DES DEMANDES D'ACCÈS (SAR) ==="])
+        writer.writerow(["demandé_le", "statut", "répondu_le", "hash_export"])
+        for sar in payload["sar_audit_trail"]:
+            writer.writerow([sar["requested_at"], sar["status"],
+                             sar["responded_at"], sar["export_hash"]])
+
+        csv_bytes = output.getvalue().encode("utf-8-sig")  # BOM pour Excel
+        response = HttpResponse(csv_bytes, content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = (
+            f'attachment; filename="export_rgpd_{timestamp}.csv"'
+        )
+        return response

@@ -17,7 +17,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { changePassword, deleteAccount, updateProfile } from '@/api/auth';
+import { changePassword, deleteAccount, exportMyData, updateProfile } from '@/api/auth';
 import { getApiErrorMessage } from '@/api/errors';
 
 export default function ProfilePage() {
@@ -39,6 +39,10 @@ export default function ProfilePage() {
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
   const [pwdErr, setPwdErr] = useState<string | null>(null);
   const [pwdLoading, setPwdLoading] = useState(false);
+
+  // --- Zone RGPD : export ---
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportErr, setExportErr] = useState<string | null>(null);
 
   // --- Zone 3 : suppression ---
   const [delPwd, setDelPwd] = useState('');
@@ -81,6 +85,18 @@ export default function ProfilePage() {
       setPwdErr(getApiErrorMessage(err, 'Changement de mot de passe impossible.'));
     } finally {
       setPwdLoading(false);
+    }
+  };
+
+  const handleExport = async (format: 'json' | 'csv') => {
+    setExportErr(null);
+    setExportLoading(true);
+    try {
+      await exportMyData(format);
+    } catch (err) {
+      setExportErr(getApiErrorMessage(err, 'Export impossible. Réessayez.'));
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -220,30 +236,53 @@ export default function ProfilePage() {
         </form>
       </section>
 
-      {/* Placeholders RGPD / signalement (à compléter pendant la semaine) */}
-      <section className="card bg-slate-50">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Mes données</h2>
+      {/* Zone RGPD : export des données personnelles (Art. 15 & 20) */}
+      <section className="card">
+        <h2 className="text-lg font-semibold text-slate-900 mb-1">Mes données personnelles</h2>
         <p className="text-sm text-slate-500 mb-4">
-          Fonctionnalités à construire pendant la semaine APOCAL'IPSSI.
+          Conformément au RGPD (Art. 15 &amp; 20), vous pouvez télécharger l'intégralité des
+          données que nous détenons à votre sujet dans un format lisible par machine.
         </p>
+        {exportErr && (
+          <div className="mb-4 p-3 bg-rose-50 border-l-4 border-rose-500 text-sm text-rose-900 rounded">
+            {exportErr}
+          </div>
+        )}
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            disabled
-            title="À implémenter (J3-bis) — droit à la portabilité RGPD"
-            className="btn-secondary opacity-60 cursor-not-allowed"
+            disabled={exportLoading}
+            onClick={() => handleExport('json')}
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Exporter mes données (bientôt)
+            {exportLoading ? 'Export en cours…' : 'Exporter mes données (JSON)'}
           </button>
           <button
             type="button"
-            disabled
-            title="À implémenter (J4) — signalement de contenu"
-            className="btn-secondary opacity-60 cursor-not-allowed"
+            disabled={exportLoading}
+            onClick={() => handleExport('csv')}
+            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Signaler un contenu (bientôt)
+            {exportLoading ? 'Export en cours…' : 'Exporter mes données (CSV)'}
           </button>
         </div>
+        <p className="text-xs text-slate-400 mt-3">
+          L'export inclut votre compte, vos quiz, vos réponses et l'historique de vos demandes
+          d'accès. Délai de réponse légal : 30 jours (nous répondons immédiatement).
+        </p>
+      </section>
+
+      {/* Placeholder signalement (J4) */}
+      <section className="card bg-slate-50">
+        <h2 className="text-lg font-semibold text-slate-900 mb-2">Signalement</h2>
+        <button
+          type="button"
+          disabled
+          title="À implémenter (J4) — signalement de contenu"
+          className="btn-secondary opacity-60 cursor-not-allowed"
+        >
+          Signaler un contenu (bientôt)
+        </button>
       </section>
 
       {/* Zone 3 : danger */}
